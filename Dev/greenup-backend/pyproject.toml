@@ -1,0 +1,53 @@
+# pyproject.toml
+[project]
+name = "greenup-backend"
+version = "0.1.0"
+description = "Enterprise FastAPI backend"
+authors = [{name = "Vasiliy Pivovarov", email = "vasiliy.mv.obzor@gmail.com"}]
+readme = "README.md"
+requires-python = "3.14"
+package-mode = true
+
+dependencies = [
+    "fastapi",
+    "uvicorn[standard]",
+    "sqlalchemy[asyncio]",
+    "asyncpg",
+    "pydantic-settings",
+    "pydantic[email]>=2.12.4,<3.0.0",
+    "python-jose[cryptography]",
+    "alembic",
+    "slowapi",
+    "redis",
+    "celery",
+    "python-json-logger",
+    "psycopg2-binary>=2.9.11,<3.0.0",
+    "argon2-cffi>=25.1.0,<26.0.0"
+]
+
+[project.optional-dependencies]
+dev = [
+    "black>=25.9.0,<26.0.0",
+    "isort>=7.0.0,<8.0.0",
+    "flake8>=7.3.0,<8.0.0",
+    "pytest",
+    "pytest-asyncio",
+    "httpx",
+    "ruff"
+]
+
+test = [
+    "pytest",
+    "pytest-asyncio",
+    "httpx",
+    "factory-boy",
+    "pytest-mock",
+    "pytest-cov"
+]
+
+# CLI-утилиты (alembic, uvicorn, celery) — в основных зависимостях!
+# Они нужны в продакшене → НЕ в optional!
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

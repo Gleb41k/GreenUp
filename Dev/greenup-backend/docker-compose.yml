@@ -1,0 +1,81 @@
+services:
+
+  app:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    command: ["poetry", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    ports:
+      - "8080:8000"
+    environment:
+      - APP_ENVIRONMENT=dev
+      - DATABASE_URL=postgresql+asyncpg://postgres:password@db:5432/appdb
+      - CACHE_REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=amqp://guest:guest@rabbitmq:5672//
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    depends_on:
+      db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./:/app
+
+  celery:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    command: ["poetry", "run", "celery", "-A", "app.tasks.celery_app", "worker", "--loglevel=info", "-Q", "default,high_priority", "-E"]
+    environment:
+      - APP_ENVIRONMENT=dev
+      - DATABASE_URL=postgresql+asyncpg://postgres:password@db:5432/appdb
+      - CELERY_BROKER_URL=amqp://guest:guest@rabbitmq:5672//
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    depends_on:
+      db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - .:/app
+
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: appdb
+    ports: [ "5432:5432" ]
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports: [ "6379:6379" ]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: [ "CMD", "rabbitmqctl", "status" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  postgres_data:
